@@ -1,0 +1,45 @@
+
+from mistralai import Mistral
+import numpy as np
+import PyPDF2
+
+api_key = "x62WtEYyJ4rKaqDQSWKelQUtg4mvNcNi"
+
+client = Mistral(api_key=api_key)
+response = client.chat.complete(
+    model="mistral-medium",
+    messages=[{"role": "user", "content": "Qui est le président de la France?."}]
+)
+
+print(response)
+
+
+# 2️⃣ Lire le PDF
+pdf_path = "/Users/AnhNguyen/Downloads/Politique-RH.pdf"
+text = ""
+with open(pdf_path, "rb") as file:
+    reader = PyPDF2.PdfReader(file)
+    for page in reader.pages:
+        text += page.extract_text() + "\n"
+
+print(f"PDF chargé ({len(text)} caractères)")
+
+# 3️⃣ Découper le texte en morceaux
+chunk_size = 2048
+chunks = [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
+print(f"{len(chunks)} chunks créés")
+
+# 4️⃣ Fonction pour obtenir les embeddings
+def get_text_embedding(input_text):
+    embeddings_response = client.embeddings.create(
+        model="mistral-embed",
+        inputs=input_text
+    )
+    return np.array(embeddings_response.data[0].embedding)
+
+# 5️⃣ Calcul des embeddings
+text_embeddings = np.array([get_text_embedding(chunk) for chunk in chunks])
+
+
+# 6️⃣ (Optionnel) Sauvegarder les embeddings pour éviter de les recalculer à chaque fois
+np.save("Politique-RH_embeddings.npy", text_embeddings)

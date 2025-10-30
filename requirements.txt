@@ -1,0 +1,17 @@
+##streamlit
+##langchain
+##langchain_mistralai
+##istralai
+##chromadb
+##tiktoken
+
+
+streamlit
+python-dotenv
+langchain
+langchain-community
+langchain-mistralai
+mistralai
+chromadb
+PyPDF2
+numpy
