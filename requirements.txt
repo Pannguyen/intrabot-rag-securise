@@ -15,3 +15,4 @@ mistralai
 chromadb
 PyPDF2
 numpy
+pdfplumber
