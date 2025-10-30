@@ -6,7 +6,8 @@ import numpy as np
 from mistralai import Mistral
 #from langchain_community.vectorstores import Chroma
 from langchain.embeddings.base import Embeddings
-from langchain_chroma import Chroma
+#from langchain_chroma import Chroma
+from langchain_community.vectorstores import Chroma
 
 
 load_dotenv()
