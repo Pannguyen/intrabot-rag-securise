@@ -15,7 +15,7 @@ api_key = os.getenv("MISTRAL_API_KEY")
 
 CHROMA_DIR = "./db_chroma"
 
-# Initialiser le client Mistral
+# Initialiser le client Mistral : permet de generer la reponse 
 client = Mistral(api_key=api_key)
 
 # Chargement texte le PDF
@@ -43,21 +43,17 @@ def lire_pdf(pdf_path):
             extracted = page.extract_text()
             if extracted:
                 text += extracted + "\n"
-    return text.strip()            
+    return text.strip() ## enlève les espaces/retours inutiles en début/fin.
 
 
 # Fonction des chunks
 def chunker(texte, taille=2048): 
     return [texte[i:i+taille] for i in range(0, len(texte), taille)]
 
-#chunk_size = 2048
-#chunks = [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]
-#print(f"{len(chunks)} chunks créés à partir du PDF.")
-
 
 ## Creation embeddings pour chaque chunks de texte. 
 def get_text_embedding(input_text):
-    response = client.embeddings.create(
+    response = client.embeddings.create( ##représentation numérique
         model="mistral-embed",
         inputs=[input_text]
     )
@@ -82,15 +78,14 @@ for doc_id, metadata in zip(vectordb.get()["ids"], vectordb.get()["metadatas"]):
     print(doc_id, metadata)
 
 
-# Ajouter les textes s’il n’y a encore rien
-
-
+##indexer les documents si la base est vide
 if len(vectordb.get()["ids"]) == 0:
-    # Ajouter les textes (toujours reconstruire)
+    # Ajouter les textes 
     for profil, fichiers in pdf_path_profil.items():
         for chemin_pdf in fichiers:
             texte = lire_pdf(chemin_pdf)
             chunks = chunker(texte)
+            ## Chaque document est associé à la métadonnée :
             metadatas = [{"profil_autorise": profil, "source": os.path.basename(chemin_pdf)} for _ in chunks]
             emb_path = f"embeddings_{profil}.npy"
             if os.path.exists(emb_path):
@@ -104,26 +99,12 @@ if len(vectordb.get()["ids"]) == 0:
             vectordb.add_texts(texts=chunks, metadatas=metadatas)
             #print(f"{chemin_pdf} indexé ({len(chunks)} chunks) pour le profil {profil}.")
 
-    vectordb.persist()
+    vectordb.persist() ##enregistre sur disque dans ./db_chroma. 
 
-
-#     for profil, fichiers in pdf_path_profil.items():
-#         for chemin_pdf in fichiers:
-#             texte = lire_pdf(chemin_pdf)
-#             chunks = chunker(texte)
-#             metadatas = [{"profil_autorise": profil, "source": os.path.basename(chemin_pdf)} for _ in chunks]
-#             vectordb.add_texts(texts=chunks, metadatas=metadatas)
-#             print(f"{chemin_pdf} indexé ({len(chunks)} chunks) pour le profil {profil}.")
-#     vectordb.persist()
-   # metadatas = [{"profil_autorise": "RH"} for _ in chunks]
-    #vectordb.add_texts(texts=chunks, metadatas=metadatas)
-    #vectordb.persist()
-    #print(" Base vectorielle Chroma initialisée avec les documents RH.")
 
 
 # -------------------------------------------------------
 #  Fonction de recherche filtrée
-# -------------------------------------------------------
 def retrieve_docs(query: str, profil: str, k: int = 3):
     results = vectordb.similarity_search_with_score(
         query=query,
@@ -160,6 +141,7 @@ Réponse :
 
     return response.choices[0].message.content.strip()
 
+
 # Interface Streamlit
 # -------------------------------------------------------
 st.set_page_config(page_title="Assistant Mistral", layout="wide")
@@ -170,7 +152,6 @@ profil = st.sidebar.selectbox("Profil utilisateur :", ["RH", "Employé", "Manage
 st.sidebar.info("Choisis ton profil pour filtrer les documents.")
 
 st.write("Posez une question :")
-##query = st.text_area(" Votre question :", placeholder="Ex: Quels sont les congés autorisés ?")
 query = st.text_area(" Votre question :") 
 if st.button("Générer la réponse"):
         with st.spinner("Recherche dans les documents et génération de la réponse..."):
